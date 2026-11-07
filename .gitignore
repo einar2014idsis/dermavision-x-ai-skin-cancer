@@ -1,0 +1,19 @@
+.venv*/
+__pycache__/
+*.py[cod]
+data/
+.tcl/
+.vscode/
+*.log
+runs/*
+!runs/functional-02/
+!runs/domain-01/
+!runs/domain-02/
+
+# Archivos locales de documentos y revisión; no forman parte del proyecto.
+audit_semana03_word.py
+build_semana03_word.py
+output/
+qa_chapter_v.pdf
+qa_pages*/
+tmp/
