@@ -42,3 +42,9 @@ Las pruebas automatizadas no sustituyen una evaluación clínica ni una prueba r
 ## Privacidad y publicación
 
 No subas `data/`, credenciales, fotografías, bases de datos, entornos virtuales ni descargas del modelo CLIP al repositorio. Revisa los permisos de los archivos incluidos antes de publicar. El `.gitignore` conserva las configuraciones y el clasificador de este paquete y excluye los datos locales.
+
+## Tecnologías y capacidades técnicas
+
+El proyecto combina Python y Tkinter para la interfaz; TensorFlow/Keras para el clasificador experimental; PyTorch y Transformers para el filtro semántico; OpenCV y Pillow para imágenes; NumPy, scikit-learn y Matplotlib para análisis y visualización. `requirements.txt` contiene los rangos de versiones.
+
+El flujo separa captura y controles de entrada, análisis individual, persistencia local y seguimiento longitudinal. Las herramientas de comparación, gráficos y generación de informes permiten revisar visitas y documentar cambios visuales; los módulos de calibración y evaluación respaldan la experimentación. Las salidas deben interpretarse dentro de las limitaciones descritas arriba, sin inferir rendimiento clínico.
