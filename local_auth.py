@@ -31,7 +31,7 @@ class LocalAdmin:
                     salt=base64.b64encode(salt).decode("ascii"),
                     digest=base64.b64encode(self._digest(password, salt)).decode("ascii"))
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        # Exclusive creation prevents overwriting an existing account.
+        # Evita sobrescribir una cuenta existente.
         fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
@@ -39,7 +39,7 @@ class LocalAdmin:
                 handle.flush()
                 os.fsync(handle.fileno())
         except Exception:
-            # A partial file remains visible and requires manual recovery; never overwrite it.
+            # El archivo incompleto requiere recuperación manual.
             raise
 
     def verify(self, username, password):

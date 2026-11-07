@@ -1,0 +1,16 @@
+{
+  "seed": 2026,
+  "epochs": 3,
+  "image_size": 224,
+  "class_mapping": {
+    "benign": 0,
+    "malignant": 1
+  },
+  "threshold": 0.5,
+  "class_weights": {
+    "0": 0.9153645833333334,
+    "1": 1.1018808777429467
+  },
+  "patient_independence_verified": false,
+  "source_clinically_verified": false
+}

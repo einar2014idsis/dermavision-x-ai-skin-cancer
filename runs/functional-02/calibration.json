@@ -1,0 +1,56 @@
+{
+  "schema": "dermavision-calibration-v1",
+  "method": "Platt scaling",
+  "fit_split": "validation",
+  "selection_rule": "coverage >= 0.85, decided sensitivity >= 0.94; maximize specificity",
+  "slope": 1.0345552569833918,
+  "intercept": -0.5688129633469066,
+  "threshold": 0.366,
+  "uncertain_low": 0.266,
+  "uncertain_high": 0.46599999999999997,
+  "validation": {
+    "threshold": 0.366,
+    "sensitivity": 0.9425837320574163,
+    "specificity": 0.8,
+    "accuracy": 0.8642241379310345,
+    "f1": 0.862144420131291,
+    "false_negatives": 12,
+    "false_positives": 51,
+    "auc": 0.9501641805047378,
+    "uncertain_low": 0.266,
+    "uncertain_high": 0.46599999999999997,
+    "coverage": 0.8804554079696395,
+    "abstained": 63
+  },
+  "test_report_only": {
+    "all_cases": {
+      "threshold": 0.366,
+      "sensitivity": 0.9333333333333333,
+      "specificity": 0.75,
+      "accuracy": 0.8333333333333334,
+      "f1": 0.835820895522388,
+      "false_negatives": 20,
+      "false_positives": 90,
+      "auc": 0.9370092592592593
+    },
+    "after_abstention": {
+      "threshold": 0.366,
+      "sensitivity": 0.9527272727272728,
+      "specificity": 0.7967213114754098,
+      "accuracy": 0.8706896551724138,
+      "f1": 0.8747913188647746,
+      "false_negatives": 13,
+      "false_positives": 62,
+      "auc": 0.9528941877794337,
+      "uncertain_low": 0.266,
+      "uncertain_high": 0.46599999999999997,
+      "coverage": 0.8787878787878788,
+      "abstained": 80
+    }
+  },
+  "limitations": [
+    "Sin independencia por paciente verificada.",
+    "No constituye calibraci\u00f3n cl\u00ednica externa.",
+    "La zona no concluyente se defini\u00f3 con validaci\u00f3n interna."
+  ]
+}

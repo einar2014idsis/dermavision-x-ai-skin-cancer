@@ -288,7 +288,7 @@ def classification_text(classification):
 
 
 def classification_summary(classification):
-    """Plain wording for the recorded model output, never a clinical probability."""
+    """Describe la salida del modelo sin presentarla como probabilidad clínica."""
     state = classification.get("state", "unavailable")
     score = classification.get("score")
     if state == "accepted":
@@ -321,7 +321,7 @@ def classify_record(
     model_path=None,
     explain=True,
 ):
-    """Analyze a saved visit; reuse its verified snapshot if models are unavailable."""
+    """Analiza una visita y reutiliza el resultado guardado si no hay modelo."""
     record = store.record(identifier)
     image, mask = store.load_images(record)
     cached = record["metadata"].get("classification")
@@ -332,7 +332,7 @@ def classify_record(
         ):
             return cached
     classification = classify(image, model, gate, calibration)
-    # Do not replace a previous completed analysis with an unavailable model.
+    # Conserva el análisis anterior si el modelo no está disponible.
     if classification["state"] == "unavailable":
         return classification
     classification["model_sha256"] = (
@@ -412,7 +412,7 @@ def compare_visual_images(photo0, photo1, mask0, mask1, reviewed=True):
     f0["area_coverage_percent"] = float(m0.mean() * 100)
     f1["area_coverage_percent"] = float(m1.mean() * 100)
     differences = visual_descriptors(previous, current, m0, m1, (f0, f1))
-    # Coverage is intentionally excluded: crop and distance determine its value.
+    # Excluye la cobertura, que depende del encuadre y la distancia.
     components = {
         key: float(min(abs(differences[key]) / INDEX_SCALES[key], 1))
         for key in ("shape", "asymmetry", "border", "color", "texture")

@@ -1,0 +1,8 @@
+{
+  "schema": "dermavision-semantic-v1",
+  "taxonomy_sha256": "309bc40a715de33c1a9403fe1fd38ca356b18a35522fd318200702da0cafa9df",
+  "validation_passed": true,
+  "accept_margin": 0.001,
+  "reject_margin": -0.025,
+  "combined_validation_passed": true
+}

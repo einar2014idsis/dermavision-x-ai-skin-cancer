@@ -1,0 +1,50 @@
+{
+  "validation": {
+    "images": 3054,
+    "accepted_lesions": 1052,
+    "rejected_lesions": 2,
+    "rejected_objects": 1997,
+    "accepted_objects": 3,
+    "lesion_acceptance": 0.9981024667931688,
+    "object_rejection": 0.9985,
+    "auc": 0.99998055028463
+  },
+  "threshold": 0.5,
+  "validation_counts_include_synthetic_variants": true,
+  "exact_duplicates_removed": 0,
+  "criteria": {
+    "object_rejection": 0.98,
+    "lesion_acceptance": 0.85
+  },
+  "source": "https://www.cs.toronto.edu/~kriz/cifar.html",
+  "limitations": [
+    "CIFAR-100 de 32x32 es un proxy de objetos; no valida cámara/celular.",
+    "Sin negativos de piel sana o patologías no incluidas.",
+    "Independencia por paciente no verificada; no detecta duplicados aproximados.",
+    "La aceptación no confirma lesión ni malignidad; el filtro puede fallar."
+  ],
+  "test": {
+    "images": 1750,
+    "accepted_lesions": 658,
+    "rejected_lesions": 2,
+    "rejected_objects": 1087,
+    "accepted_objects": 3,
+    "lesion_acceptance": 0.996969696969697,
+    "object_rejection": 0.9972477064220183,
+    "auc": 0.9999388379204893
+  },
+  "bottles": {
+    "images": 100,
+    "rejected": 100
+  },
+  "synthetic_display_test": {
+    "images": 1750,
+    "accepted_lesions": 658,
+    "rejected_lesions": 2,
+    "rejected_objects": 1085,
+    "accepted_objects": 5,
+    "lesion_acceptance": 0.996969696969697,
+    "object_rejection": 0.9954128440366973,
+    "auc": 0.9997567417292188
+  }
+}

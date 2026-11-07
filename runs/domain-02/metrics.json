@@ -1,0 +1,70 @@
+{
+  "accept_margin": 0.001,
+  "reject_margin": -0.025,
+  "mode": "semantic AND reference domain gate; disagreement abstains",
+  "threshold_selection": "validation only, grid .001 to .100; no test tuning",
+  "criteria": {
+    "object_blocking": 0.98,
+    "lesion_acceptance": 0.85
+  },
+  "limitations": [
+    "CIFAR-100 es un proxy de objetos de 32x32, no de todos los objetos reales.",
+    "No evaluado con piel sana, otros trastornos ni cámaras reales.",
+    "Sin independencia por paciente verificada ni validación clínica.",
+    "Los casos no concluyentes reducen la cobertura de lesiones.",
+    "CLIP es un modelo general de investigación."
+  ],
+  "semantic_validation": {
+    "images": 1527,
+    "accepted_lesions": 482,
+    "total_lesions": 527,
+    "accepted_objects": 14,
+    "total_objects": 1000,
+    "rejected_lesions": 0,
+    "uncertain_lesions": 45,
+    "explicitly_rejected_objects": 861,
+    "uncertain_objects": 125,
+    "lesion_acceptance": 0.9146110056925996,
+    "object_blocking": 0.986
+  },
+  "validation": {
+    "images": 1527,
+    "accepted_lesions": 481,
+    "total_lesions": 527,
+    "accepted_objects": 0,
+    "total_objects": 1000,
+    "rejected_lesions": 0,
+    "uncertain_lesions": 46,
+    "explicitly_rejected_objects": 861,
+    "uncertain_objects": 139,
+    "lesion_acceptance": 0.9127134724857685,
+    "object_blocking": 1.0
+  },
+  "semantic_test": {
+    "images": 1750,
+    "accepted_lesions": 604,
+    "total_lesions": 660,
+    "accepted_objects": 15,
+    "total_objects": 1090,
+    "rejected_lesions": 0,
+    "uncertain_lesions": 56,
+    "explicitly_rejected_objects": 953,
+    "uncertain_objects": 122,
+    "lesion_acceptance": 0.9151515151515152,
+    "object_blocking": 0.9862385321100917
+  },
+  "test": {
+    "images": 1750,
+    "accepted_lesions": 603,
+    "total_lesions": 660,
+    "accepted_objects": 2,
+    "total_objects": 1090,
+    "rejected_lesions": 0,
+    "uncertain_lesions": 57,
+    "explicitly_rejected_objects": 953,
+    "uncertain_objects": 135,
+    "lesion_acceptance": 0.9136363636363637,
+    "object_blocking": 0.998165137614679
+  },
+  "combined_validation_passed": true
+}
