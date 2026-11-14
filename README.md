@@ -18,6 +18,56 @@ El último comando descarga el modelo público `openai/clip-vit-base-patch32` en
 
 En el primer inicio crea un usuario y una contraseña de al menos 10 caracteres. No existe una contraseña predeterminada ni recuperación automática. El acceso es local y no cifra fotografías ni datos; protégelos mediante los controles de tu equipo. El historial y la credencial se guardan en `data/`, excluido del repositorio.
 
+## Interfaz web en desarrollo
+
+La interfaz de React organiza el análisis individual, personas, seguimiento,
+comparaciones, informes, video y evaluación del modelo. Permite abrir una
+imagen o capturarla desde la cámara en el módulo de análisis. El seguimiento
+usa la misma cuenta local y el mismo archivo de personas y visitas que la
+aplicación de escritorio. FastAPI reutiliza el modelo activo y los filtros
+en el mismo equipo.
+
+Instala Node.js 22.20 o posterior dentro de la rama 22 y prepara el entorno
+Python de Windows descrito arriba. Desde la raíz del repositorio:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-web.txt
+Push-Location web
+npm.cmd ci
+npm.cmd run build
+Pop-Location
+.\INICIAR_WEB.cmd
+```
+
+Abre http://127.0.0.1:8765/. Para editar React, ejecuta `npm.cmd run dev`
+desde `web` mientras el servidor Python está activo y abre la dirección que
+indica Vite. Tras editar la interfaz, vuelve a compilar para actualizar lo
+que sirve FastAPI.
+
+El escritorio sigue ofreciendo las herramientas avanzadas de seguimiento,
+como los controles completos de informes y la gestión de copias de seguridad.
+
+Los modelos entrenados localmente y los conjuntos de imágenes se gestionan
+fuera de Git. Si no hay un experimento local instalado, el programa carga
+el clasificador incluido en `runs/functional-02`. La preparación de datos
+y la instalación local se explican en [la guía de entrenamiento](datasets/README.preparacion.md).
+
+| Módulo web | Funciones disponibles |
+| --- | --- |
+| Análisis | Carga de fotos, cámara, vista previa, filtros y clasificación. |
+| Personas | Búsqueda, alta y edición de personas, registro y acceso a lesiones. |
+| Seguimiento | Línea de tiempo, revisión del contorno, alta y análisis de visitas, edición de fecha y observación, papelera y restauración inmediata. |
+| Comparaciones | Selección desde el historial o desde el módulo, comparación visual o temporal, fotos y mapa de diferencias. |
+| Informes y video | Lista de visitas incluidas y exportación de la lesión a PDF y MP4. |
+| Evaluación | Métricas del experimento activo y matriz de clasificación. |
+
+En escritorio se muestran los seis módulos en un menú lateral. En pantallas
+estrechas están en el botón **Menú**. Desde Seguimiento se puede abrir una
+comparación con dos visitas seleccionadas o exportar sin perder el contexto
+de la persona y la lesión. Los controles avanzados de PDF por visita o
+comparación, las copias de seguridad y la gestión completa de la papelera
+siguen disponibles desde Tkinter.
+
 ## Estructura
 
 - `interfaz.py`: aplicación y análisis individual.

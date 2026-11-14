@@ -156,7 +156,7 @@ def read_rgb(path):
         )
 
 
-def dataset(rows, training=False):
+def dataset(rows, training=False, batch_size=16, sample_weights=False):
     import tensorflow as tf
 
     rows = list(rows)
@@ -167,19 +167,17 @@ def dataset(rows, training=False):
 
     def generate():
         for row in rows:
-            yield read_rgb(row["path"]), [float(row["label"])]
+            pair = read_rgb(row["path"]), [float(row["label"])]
+            yield (*pair, float(row["sample_weight"])) if sample_weights else pair
 
-    ds = tf.data.Dataset.from_generator(
-        generate,
-        output_signature=(
-            tf.TensorSpec((224, 224, 3), tf.float32),
-            tf.TensorSpec((1,), tf.float32),
-        ),
-    )
+    signature = (tf.TensorSpec((224, 224, 3), tf.float32), tf.TensorSpec((1,), tf.float32))
+    if sample_weights:
+        signature = (*signature, tf.TensorSpec((), tf.float32))
+    ds = tf.data.Dataset.from_generator(generate, output_signature=signature)
     ds = ds.apply(tf.data.experimental.assert_cardinality(len(rows)))
     if training:
         ds = ds.shuffle(min(len(rows), 256), seed=2026)
-    return ds.batch(16).prefetch(1)
+    return ds.batch(batch_size).prefetch(1)
 
 
 def metrics(labels, scores):

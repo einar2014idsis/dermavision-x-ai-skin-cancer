@@ -11,10 +11,8 @@ from tkinter import ttk
 import numpy as np
 from PIL import Image, ImageOps, ImageTk
 from capture_guide import CaptureGuide
-from app_paths import MODEL_DIR
 from ui_lifecycle import cancel_window_tasks
-from semantic_gate import SemanticGate, CombinedGate
-from domain_gate import DomainGate
+from classifier_runtime import default_experiment, load_classifier
 from references import ReferenceIndex
 from calibration import ScoreCalibration
 from explainability import (
@@ -34,8 +32,6 @@ from ui_theme import (
 
 CYAN = ACCENT
 TECHNICAL_DETAILS = "\n\nDETALLES TÉCNICOS\n"
-
-
 def describe_result(score, calibration=None):
     if not np.isfinite(score) or not 0 <= score <= 1:
         raise ValueError("Puntuación inválida.")
@@ -123,7 +119,7 @@ class App:
         self.metrics = tk.StringVar(
             value="Sensibilidad —   Especificidad —   F1 —   AUC —   Exactitud —"
         )
-        self.experiment_folder = MODEL_DIR / "functional-02"
+        self.experiment_folder = default_experiment()
         header = tk.Frame(root, bg=BG)
         header.pack(fill="x")
         if self.authenticated:
@@ -351,7 +347,7 @@ class App:
         ).pack(side="bottom", before=body, pady=(8, 6))
         root.protocol("WM_DELETE_WINDOW", self.close)
         self.poll_job = root.after(100, self.poll)
-        default_model = MODEL_DIR / "functional-02" / "model.keras"
+        default_model = self.experiment_folder / "model.keras"
         if autoload_model and default_model.exists() and default_model.with_name("metrics.json").exists():
             self.autoload_job = root.after(300, lambda: self.load_model(default_model))
 
@@ -879,23 +875,7 @@ class App:
         def load():
             import tensorflow as tf
 
-            config = json.loads(
-                Path(path).with_name("config.json").read_text(encoding="utf-8")
-            )
-            if (
-                config.get("class_mapping") != {"benign": 0, "malignant": 1}
-                or config.get("image_size") != 224
-                or config.get("threshold") != 0.5
-            ):
-                raise ValueError(
-                    "Configuración incompatible: requiere el modelo del pipeline DermaVision-X."
-                )
-            model = tf.keras.models.load_model(path, compile=False, safe_mode=True)
-            if model.input_shape != (None, 224, 224, 3) or model.output_shape != (
-                None,
-                1,
-            ):
-                raise ValueError("Arquitectura de entrada/salida incompatible.")
+            model, gate, calibration = load_classifier(path)
             pooled = next(
                 layer
                 for layer in model.layers
@@ -913,9 +893,6 @@ class App:
             metrics_path = Path(path).with_name("metrics.json")
             values = (
                 json.loads(metrics_path.read_text()) if metrics_path.exists() else {}
-            )
-            calibration = ScoreCalibration.load(
-                Path(path).with_name("calibration.json")
             )
             calibration_path = Path(path).with_name("calibration.json")
             if calibration_path.exists():
@@ -941,16 +918,6 @@ class App:
                         },
                         "coverage": selective.get("coverage"),
                     }
-            gate_path = MODEL_DIR / "domain-02" / "config.json"
-            reference_path = MODEL_DIR / "domain-01" / "gate.json"
-            gate = (
-                CombinedGate(
-                    SemanticGate(MODEL_DIR / "clip-vit-base-patch32", gate_path),
-                    DomainGate(reference_path, path, model),
-                )
-                if gate_path.exists() and reference_path.exists()
-                else None
-            )
             from domain_gate import feature_model
 
             references = ReferenceIndex(
