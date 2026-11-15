@@ -1,0 +1,18 @@
+{
+  "counts": {
+    "train/OWN/0": 1313,
+    "validation/OWN/0": 127,
+    "train/OWN/1": 1090,
+    "validation/OWN/1": 106,
+    "train/ISIC-2019/0": 14525,
+    "validation/ISIC-2019/1": 763,
+    "train/ISIC-2019/1": 7693,
+    "validation/ISIC-2019/0": 1439,
+    "test/OWN-HISTORICAL-TEST/0": 360,
+    "test/OWN-HISTORICAL-TEST/1": 300
+  },
+  "historical_test": 660,
+  "patient_independence_verified": false,
+  "portable_paths_are_placeholders": true,
+  "source_to_opaque_mapping_retained_locally": true
+}

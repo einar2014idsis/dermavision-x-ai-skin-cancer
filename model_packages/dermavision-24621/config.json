@@ -1,0 +1,9 @@
+{
+  "image_size": 224,
+  "class_mapping": {
+    "benign": 0,
+    "malignant": 1
+  },
+  "threshold": 0.21032662689685822,
+  "domain_reference": "functional-02"
+}

@@ -19,7 +19,7 @@ const personLabel = (p) => p.name ? p.name + ' · ' + p.code : p.code
 
 export function ModelResults() {
   const [report, error] = useData('/model/results')
-  const names = { accuracy:'Exactitud', sensitivity:'Sensibilidad', specificity:'Especificidad', f1:'F1', auc:'AUC-ROC', threshold:'Umbral experimental' }
+  const names = { accuracy:'Exactitud', sensitivity:'Sensibilidad', specificity:'Especificidad', f1:'F1', auc:'AUC-ROC', threshold:'Umbral experimental', coverage:'Cobertura' }
   const descriptions = {
     accuracy: 'Proporción de clasificaciones correctas.',
     sensitivity: 'Proporción de imágenes malignas detectadas.',
@@ -27,6 +27,7 @@ export function ModelResults() {
     f1: 'Equilibrio entre precisión de los positivos y sensibilidad.',
     auc: 'Capacidad de distinguir ambas clases a través de distintos umbrales.',
     threshold: 'Puntuación a partir de la cual se marca una imagen como positiva.',
+    coverage: 'Proporción de imágenes con un resultado concluyente.',
   }
   const percent = new Intl.NumberFormat('es-PE', { style: 'percent', maximumFractionDigits: 2 })
   return <section className="followup-view">
@@ -34,7 +35,8 @@ export function ModelResults() {
     {error && <p role="alert" className="error">{error}</p>}
     {!report && !error && <p>Cargando evaluación…</p>}
     {report && <>
-      <div className="metric-grid">{Object.entries(names).map(([key, label]) =>
+      <p>{report.evaluation_scope} · {report.experiment}</p>
+      <div className="metric-grid">{Object.entries(names).filter(([key]) => report.metrics[key] != null).map(([key, label]) =>
         <article className="panel metric" key={key}><span>{label}</span>
           <strong>{typeof report.metrics[key] === 'number' ? percent.format(report.metrics[key]) : 'Sin dato'}</strong>
           <small>{descriptions[key]}</small></article>)}</div>

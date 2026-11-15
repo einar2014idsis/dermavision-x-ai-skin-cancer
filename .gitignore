@@ -9,6 +9,8 @@ runs/*
 !runs/functional-02/
 !runs/domain-01/
 !runs/domain-02/
+model_packages/**/*.keras
+model_packages/**/*.zip
 
 # Archivos locales de documentos y revisión; no forman parte del proyecto.
 audit_semana03_word.py

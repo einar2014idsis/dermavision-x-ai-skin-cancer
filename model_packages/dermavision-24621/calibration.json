@@ -1,0 +1,9 @@
+{
+  "schema": "dermavision-calibration-v1",
+  "fit_split": "validation",
+  "slope": 1,
+  "intercept": 0,
+  "threshold": 0.21032662689685822,
+  "uncertain_low": 0.21032662689685822,
+  "uncertain_high": 0.21032662689685822
+}

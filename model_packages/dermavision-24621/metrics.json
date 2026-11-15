@@ -1,0 +1,19 @@
+{
+  "threshold": 0.21032662689685822,
+  "auc": 0.952388888888889,
+  "sensitivity": 0.9333333333333333,
+  "specificity": 0.8027777777777778,
+  "accuracy": 0.8621212121212121,
+  "f1": 0.8602150537634409,
+  "confusion_matrix": [
+    [
+      289,
+      71
+    ],
+    [
+      20,
+      280
+    ]
+  ],
+  "evaluation": "historical_test_followup"
+}

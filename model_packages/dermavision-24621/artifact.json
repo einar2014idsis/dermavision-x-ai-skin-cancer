@@ -1,0 +1,7 @@
+{
+  "experiment": "dermavision-24621",
+  "source_experiment": "candidate-1a56d52ea49b4e41a2dbb7e1990c03f9",
+  "sha256": "03d4c6c5b3f30cce127b4f5ca27534cd74d262659498487966472451af8fabfe",
+  "size_bytes": 9688965,
+  "training_images": 24621
+}

@@ -1,0 +1,8 @@
+{
+  "experiment": "dermavision-50000",
+  "model_file": "candidate.keras",
+  "size_bytes": 10655595,
+  "sha256": "94ffdbc53cfe6e03a9937d67484c6cd86183a797e1cd2966e3db447c767a1159",
+  "training_images": 50000,
+  "active": false
+}

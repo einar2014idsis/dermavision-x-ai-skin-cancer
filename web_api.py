@@ -56,10 +56,19 @@ def model_results():
     if not metrics.is_file():
         raise HTTPException(404, "El modelo activo no tiene un informe de evaluación.")
     values = json.loads(metrics.read_text(encoding="utf-8"))
+    scope = "Prueba histórica"
+    calibration = folder / "calibration.json"
+    if calibration.is_file():
+        report = json.loads(calibration.read_text(encoding="utf-8"))
+        selective = report.get("test_report_only", {}).get("after_abstention")
+        if selective:
+            values = {**selective, "confusion_matrix": None}
+            scope = "Prueba histórica, casos concluyentes"
     return {
         "experiment": folder.name,
+        "evaluation_scope": scope,
         "metrics": {key: values.get(key) for key in
-                    ("accuracy", "sensitivity", "specificity", "f1", "auc", "threshold")},
+                    ("accuracy", "sensitivity", "specificity", "f1", "auc", "threshold", "coverage")},
         "confusion_matrix": values.get("confusion_matrix"),
     }
 

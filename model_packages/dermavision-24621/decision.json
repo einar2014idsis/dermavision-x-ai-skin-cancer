@@ -1,0 +1,82 @@
+{
+  "baseline": {
+    "all": {
+      "threshold": 0.2189827710390091,
+      "auc": 0.8739875842669382,
+      "sensitivity": 0.9010356731875719,
+      "specificity": 0.6066411238825032,
+      "accuracy": 0.7117043121149897,
+      "f1": 0.6904761904761905,
+      "confusion_matrix": [
+        [
+          950,
+          616
+        ],
+        [
+          86,
+          783
+        ]
+      ]
+    },
+    "own": {
+      "threshold": 0.2189827710390091,
+      "auc": 0.9129401277670479,
+      "sensitivity": 0.8867924528301887,
+      "specificity": 0.7637795275590551,
+      "accuracy": 0.8197424892703863,
+      "f1": 0.8173913043478261,
+      "confusion_matrix": [
+        [
+          97,
+          30
+        ],
+        [
+          12,
+          94
+        ]
+      ]
+    }
+  },
+  "candidate": {
+    "all": {
+      "threshold": 0.21032662689685822,
+      "auc": 0.8844350679793719,
+      "sensitivity": 0.9010356731875719,
+      "specificity": 0.644316730523627,
+      "accuracy": 0.7359342915811088,
+      "f1": 0.7089180624717066,
+      "confusion_matrix": [
+        [
+          1009,
+          557
+        ],
+        [
+          86,
+          783
+        ]
+      ]
+    },
+    "own": {
+      "threshold": 0.21032662689685822,
+      "auc": 0.9301738226117962,
+      "sensitivity": 0.9245283018867925,
+      "specificity": 0.7716535433070866,
+      "accuracy": 0.8412017167381974,
+      "f1": 0.8412017167381974,
+      "confusion_matrix": [
+        [
+          98,
+          29
+        ],
+        [
+          8,
+          98
+        ]
+      ]
+    }
+  },
+  "promote": true,
+  "rule": "Higher overall AUC, no drop in own AUC, sensitivity or specificity, thresholds chosen by maximizing specificity at >=90% overall sensitivity in validation.",
+  "baseline_experiment": "combined01",
+  "candidate_experiment": "dermavision-24621"
+}

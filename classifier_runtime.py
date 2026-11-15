@@ -1,6 +1,7 @@
 """Carga el clasificador y sus filtros para las interfaces de escritorio y web."""
 
 import json
+import os
 from pathlib import Path
 
 from app_paths import MODEL_DIR
@@ -10,16 +11,29 @@ from semantic_gate import CombinedGate, SemanticGate
 
 DEFAULT_EXPERIMENT = MODEL_DIR / "combined01"
 LEGACY_EXPERIMENT = MODEL_DIR / "functional-02"
+PORTABLE_EXPERIMENT = MODEL_DIR / "dermavision-24621"
 
 
 def default_experiment():
+    override = os.environ.get("DERMAVISION_EXPERIMENT")
+    if override:
+        if override not in {PORTABLE_EXPERIMENT.name, LEGACY_EXPERIMENT.name}:
+            raise ValueError("DERMAVISION_EXPERIMENT debe ser dermavision-24621 o functional-02.")
+        experiment = MODEL_DIR / override
+        if not (experiment / "model.keras").is_file():
+            raise FileNotFoundError(f"Modelo solicitado no instalado: {override}")
+        return experiment
     pointer = MODEL_DIR / "active_experiment.txt"
     if pointer.is_file():
         name = pointer.read_text(encoding="utf-8").strip()
-        if name.startswith("candidate-") and Path(name).name == name:
+        if Path(name).name == name and (
+            name.startswith("candidate-") or name in {PORTABLE_EXPERIMENT.name, LEGACY_EXPERIMENT.name}
+        ):
             experiment = MODEL_DIR / name
             if (experiment / "model.keras").is_file():
                 return experiment
+    if (PORTABLE_EXPERIMENT / "model.keras").is_file():
+        return PORTABLE_EXPERIMENT
     if (DEFAULT_EXPERIMENT / "model.keras").is_file():
         return DEFAULT_EXPERIMENT
     return LEGACY_EXPERIMENT

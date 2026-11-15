@@ -51,6 +51,8 @@ Los modelos entrenados localmente y los conjuntos de imágenes se gestionan
 fuera de Git. Si no hay un experimento local instalado, el programa carga
 el clasificador incluido en `runs/functional-02`. La preparación de datos
 y la instalación local se explican en [la guía de entrenamiento](datasets/README.preparacion.md).
+Para llevar el modelo activo de 24.621 imágenes a otra computadora, consulta
+[la guía de transferencia del modelo](model_packages/README.md).
 
 | Módulo web | Funciones disponibles |
 | --- | --- |
