@@ -7,6 +7,7 @@ from PIL import Image
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.patches import FancyBboxPatch
 from longitudinal_insights import (
     date_label,
     comparison_narrative,
@@ -97,6 +98,103 @@ class ReportPages:
             ax.axis("off")
             ax.set_title(caption, fontsize=9, pad=6)
         self.y -= height + 0.02
+
+    def visit_table(self, headers, rows, widths):
+        for offset in range(0, len(rows), 8):
+            section = rows[offset:offset + 8]
+            self.table(headers, section, widths, height=0.04 * (len(section) + 1))
+
+
+def export_configured_pdf(store, lesion, person, records, comparisons, destination, sections):
+    """Use the existing PDF layout and saved results for the web report."""
+    report = ReportPages()
+    fig = report.page("Informe de seguimiento" if len(records) > 1 else "Informe de una visita")
+    logo = fig.add_axes([.07, .91, .05, .046])
+    logo.add_patch(FancyBboxPatch((0, 0), 32, 32, boxstyle="round,pad=0,rounding_size=8",
+                                 facecolor="#102f2a", linewidth=0))
+    for points in (((12, 8), (8, 8), (8, 12)), ((20, 8), (24, 8), (24, 12)),
+                   ((8, 20), (8, 24), (12, 24)), ((20, 24), (24, 24), (24, 20)),
+                   ((11, 16), (13, 16), (15, 12), (18, 20), (20, 16), (22, 16))):
+        x, y = zip(*points)
+        logo.plot(x, y, color="#adf2e1", linewidth=1.2, solid_capstyle="round")
+    logo.set(xlim=(0, 32), ylim=(32, 0), aspect="equal")
+    logo.axis("off")
+    for title in fig.texts[:2]:
+        title.set_x(.14)
+    report.text(f'Lesión: {lesion["id"][:12]} · {len(records)} visita(s)\n'
+                f'Periodo: {date_label(records[0]["captured_at"])} — {date_label(records[-1]["captured_at"])}', size=10)
+    if "identity" in sections:
+        report.text(f'Datos de identificación\nCódigo de persona: {person["code"]}\n'
+                    f'Identificador de lesión: {lesion["id"]}\nLocalización: {lesion["site"] or "No registrada"}')
+
+    labels = {record["id"]: f'{record["label"]} · {date_label(record["captured_at"])}' for record in records}
+    if "photos" in sections:
+        report.text("Fotografías del seguimiento", size=11)
+        for offset in range(0, len(records), 4):
+            images = []
+            for record in records[offset:offset + 4]:
+                photo, _ = store.load_images(record)
+                photo.thumbnail((1100, 1100))
+                images.append((photo, labels[record["id"]]))
+            report.images(images, height=.20)
+    if "charts" in sections:
+        report.text("Gráfico de evolución", size=11)
+        series = trend_series(comparisons, records, records[0]["id"])
+        if series["points"]:
+            chart = trend_figure(series, size=(7.2, 3))
+            chart.canvas.draw()
+            image = Image.frombytes("RGBA", chart.canvas.get_width_height(), bytes(chart.canvas.buffer_rgba()))
+            report.images([(image, "Índice descriptivo respecto a la primera visita")], height=.27)
+        else:
+            report.text("Sin mediciones temporales válidas para graficar.")
+    if "classifications" in sections:
+        report.text("Clasificaciones experimentales", size=11)
+        for record in records:
+            state, _, current = report_photo_state(record)
+            analysis = record["metadata"].get("classification") or {}
+            model = analysis.get("model_sha256")
+            extra = f"\nModelo SHA-256: {model}" if model and current else ""
+            report.text(f'{labels[record["id"]]} · {state}{extra}')
+    overview = report_overview(comparisons, records)
+    if "measurements" in sections:
+        report.text("Mediciones longitudinales", size=11)
+        if not overview["states"]:
+            report.text("No hay comparaciones guardadas para estas visitas.")
+        for row, state in overview["states"]:
+            report.text(f'{labels[row["previous_id"]]} → {labels[row["current_id"]]} · {state["label"]}')
+            if state["kind"] == "comparable":
+                values = [(name, change) for name, _, _, change, _ in measurement_rows(row["result"]) if name != "Forma"]
+                report.visit_table(["Indicador", "Diferencia"], values, [39, 24])
+                report.text("Área aparente relativa a la imagen inicial del par. Color en ΔE. Textura en escala de 0 a 1.", size=8)
+            else:
+                report.text(state["reason"])
+    if "maps" in sections:
+        report.text("Mapas de diferencias visuales", size=11)
+        included = False
+        for row, state in overview["states"]:
+            if state["kind"] != "comparable" or not row.get("overlay"):
+                continue
+            try:
+                with Image.open(store.path(row["overlay"])) as source:
+                    overlay = source.convert("RGB")
+            except OSError:
+                continue
+            report.images([(overlay, f'{labels[row["previous_id"]]} → {labels[row["current_id"]]}')], height=.30)
+            included = True
+        report.text("Cian: contorno inicial. Naranja: contorno posterior. Tonos cálidos: mayor diferencia local de color."
+                    if included else "No hay mapas temporales disponibles para este seguimiento.")
+    if "summary" in sections:
+        report.text("Resumen descriptivo", size=11)
+        report.text(selected_followup_summary(comparisons, records))
+    if "observations" in sections:
+        report.text("Observaciones registradas", size=11)
+        for record in records:
+            meta = record["metadata"]
+            note = (meta.get("visit_notes") or {}).get("observation") or meta.get("notes") or meta.get("note")
+            report.text(f'{labels[record["id"]]} · {note or "Sin observaciones."}')
+    with PdfPages(destination) as pdf:
+        for page in report.figures:
+            pdf.savefig(page)
 
 
 def export_readable_pdf(

@@ -4,14 +4,35 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from PIL import Image
+from classifier_input import INPUT_SIZE, classifier_pixels
 
 METHOD = "occlusion-overlap-v3"
 # Display threshold: 0.2 percentage points in raw model output, not clinical significance.
 DISPLAY_EFFECT_FLOOR = 0.002
 
 
+def field_statistics(values):
+    quantiles = np.percentile(values, [5, 25, 50, 75, 95])
+    return dict(min=float(values.min()), max=float(values.max()),
+                mean=float(values.mean()), percentiles=quantiles.tolist())
+
+
+def render_field(values, photo_size, *, signed=False):
+    ratio = min(1, 768 / max(photo_size))
+    size = tuple(max(1, round(side * ratio)) for side in photo_size)
+    field = np.asarray(Image.fromarray(values.astype("float32")).resize(size, Image.Resampling.BILINEAR))
+    if signed:
+        neutral = np.array([240, 243, 246])
+        colors = np.where(field[..., None] < 0, [38, 105, 190], [207, 60, 28])
+        rgb = neutral + np.abs(field[..., None]) * (colors - neutral)
+    else:
+        colored = cv2.applyColorMap(np.uint8(np.clip(field, 0, 1) * 255), cv2.COLORMAP_TURBO)
+        rgb = cv2.cvtColor(colored, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(np.uint8(rgb))
+
+
 def occlusion_explanation(model, image, predicted_label, grid=14, display="signed"):
-    if display not in ("signed", "magnitude-green-yellow"):
+    if display not in ("signed", "magnitude-green-yellow", "magnitude-turbo"):
         raise ValueError("Representación de influencia no reconocida.")
     if (
         predicted_label not in ("benign", "malignant")
@@ -21,10 +42,7 @@ def occlusion_explanation(model, image, predicted_label, grid=14, display="signe
         raise ValueError(
             "La explicación requiere una clase binaria y una cuadrícula válida."
         )
-    rgb = np.asarray(
-        image.convert("RGB").resize((224, 224), Image.Resampling.BILINEAR),
-        dtype="float32",
-    )
+    rgb = classifier_pixels(image)
 
     def predict(batch):
         values = np.asarray(model(batch, training=False).numpy(), dtype=float).reshape(
@@ -45,6 +63,8 @@ def occlusion_explanation(model, image, predicted_label, grid=14, display="signe
     blurred = cv2.GaussianBlur(rgb, (0, 0), sigmaX=max(4, patch / 5))
     boxes = [(y, y + patch, x, x + patch) for y in starts for x in starts]
     effects = []
+    absolute_effects = []
+    occluded_scores = []
     # Bound inference memory; do not create or evaluate all perturbations in one giant batch.
     for offset in range(0, len(boxes), 8):
         group = boxes[offset : offset + 8]
@@ -55,17 +75,21 @@ def occlusion_explanation(model, image, predicted_label, grid=14, display="signe
                 altered[y1:y2, x1:x2] = replacement
                 variants.append(altered)
         scores = predict(np.stack(variants)).reshape(-1, 2)
+        occluded_scores.extend(scores.ravel())
         signed = (
             baseline - scores if predicted_label == "malignant" else scores - baseline
         )
         # Average two perturbations to reduce sensitivity to a flat artificial patch.
         effects.extend(signed.mean(axis=1))
+        absolute_effects.extend(np.abs(signed).mean(axis=1))
     total = np.zeros((224, 224), dtype="float64")
     coverage = np.zeros_like(total)
+    magnitude_sum = np.zeros_like(total)
     axis = np.linspace(-1, 1, patch)
     weights = np.exp(-2 * (axis[:, None] ** 2 + axis[None, :] ** 2))
-    for value, (y1, y2, x1, x2) in zip(effects, boxes):
+    for value, absolute, (y1, y2, x1, x2) in zip(effects, absolute_effects, boxes):
         total[y1:y2, x1:x2] += value * weights
+        magnitude_sum[y1:y2, x1:x2] += absolute * weights
         coverage[y1:y2, x1:x2] += weights
     signed = (total / np.maximum(coverage, 1e-9)).astype("float32")
     signed = cv2.GaussianBlur(signed, (5, 5), sigmaX=1)
@@ -91,14 +115,28 @@ def occlusion_explanation(model, image, predicted_label, grid=14, display="signe
         palette_strength = np.sqrt(strength)
         colors = green + (yellow - green) * palette_strength[..., None]
         alpha = (0.80 * palette_strength)[..., None]
-    overlay = Image.fromarray(
-        np.uint8(np.clip(rgb * (1 - alpha) + colors * alpha, 0, 255))
-    )
+    if display == "magnitude-turbo":
+        # Accumulate magnitude independently so opposite signs cannot make dark seams.
+        magnitude = (magnitude_sum / coverage).astype("float32")
+        magnitude = cv2.GaussianBlur(magnitude, (5, 5), sigmaX=1)
+        peak = float(magnitude.max())
+        scale = max(peak, DISPLAY_EFFECT_FLOOR)
+        heat = magnitude / scale
+        overlay = render_field(heat, image.size)
+        overlay.info["signed_map"] = render_field(signed / scale, image.size, signed=True)
+    else:
+        overlay = Image.fromarray(np.uint8(np.clip(rgb * (1 - alpha) + colors * alpha, 0, 255)))
+    palettes = {
+        "signed": ("signed-v1", 1.0),
+        "magnitude-green-yellow": ("yellow-emphasis-v1", 0.5),
+        "magnitude-turbo": ("turbo-v1", 1.0),
+    }
+    palette_version, palette_gamma = palettes[display]
     overlay.info["explanation_stats"] = {
         "method": METHOD,
         "display_mode": display,
-        "palette_version": "yellow-emphasis-v1" if display == "magnitude-green-yellow" else "signed-v1",
-        "palette_gamma": 0.5 if display == "magnitude-green-yellow" else 1.0,
+        "palette_version": palette_version,
+        "palette_gamma": palette_gamma,
         "baseline_raw_score": baseline,
         "maximum_effect": peak,
         "display_effect_floor": DISPLAY_EFFECT_FLOOR,
@@ -107,8 +145,46 @@ def occlusion_explanation(model, image, predicted_label, grid=14, display="signe
         "evaluations": len(boxes) * 2,
         "supports_fraction": float((signed > DISPLAY_EFFECT_FLOOR).mean()),
         "opposes_fraction": float((signed < -DISPLAY_EFFECT_FLOOR).mean()),
+        "target_class": predicted_label,
+        "target_baseline": baseline if predicted_label == "malignant" else 1 - baseline,
+        "occluded_target_scores": field_statistics(
+            np.asarray(occluded_scores) if predicted_label == "malignant" else 1 - np.asarray(occluded_scores)
+        ),
+        "window_effects": field_statistics(np.asarray(effects)),
+        "signed_field": field_statistics(signed),
+        "magnitude_field": field_statistics(magnitude),
+        "stride_pixels": np.diff(starts).tolist(),
     }
     return overlay, heat
+
+
+def gradcam_explanation(model, image, predicted_label):
+    import tensorflow as tf
+
+    pool = next((layer for layer in model.layers
+                 if isinstance(layer, tf.keras.layers.GlobalAveragePooling2D)), None)
+    if pool is None or len(pool.input.shape) != 4:
+        return None
+    probe = tf.keras.Model(model.inputs, [pool.input, model.output])
+    batch = tf.convert_to_tensor(classifier_pixels(image)[None])
+    with tf.GradientTape() as tape:
+        tape.watch(batch)
+        spatial, score = probe([batch], training=False)
+        target = score[0, 0] if predicted_label == "malignant" else 1 - score[0, 0]
+    gradients = tape.gradient(target, spatial)
+    if gradients is None:
+        return None
+    weights = tf.reduce_mean(gradients, axis=(1, 2))
+    field = tf.reduce_sum(spatial * weights[:, None, None, :], axis=-1)[0].numpy()
+    positive = np.maximum(field, 0)
+    peak = float(positive.max())
+    if not np.isfinite(field).all() or peak <= 0:
+        return None
+    # Render once from the native convolutional grid to the original framing.
+    return render_field(positive / peak, image.size), {
+        "target_class": predicted_label, "target_baseline": float(target.numpy()),
+        "grid": list(field.shape), "field": field_statistics(field),
+    }
 
 
 def explanation_diagnostics(overlay, heat, mask=None):
@@ -211,7 +287,9 @@ def explanation_caption(stats):
         return "Explicación guardada con el método anterior. Recalcula para usar el mapa actualizado."
     if not stats.get("informative"):
         return "Sin señal suficiente para colorear: las oclusiones apenas modificaron la salida del modelo."
-    if stats.get("display_mode") == "magnitude-green-yellow":
+    if stats.get("display_mode") == "magnitude-turbo":
+        message = "Colores fríos: menor influencia. Colores cálidos: mayor influencia al ocultar zonas de la foto."
+    elif stats.get("display_mode") == "magnitude-green-yellow":
         message = (
             "Verde: menor intensidad de influencia. Amarillo: mayor intensidad de influencia. "
             "Sin color: señal insuficiente. La intensidad indica cuánto cambió la salida al ocultar una región; "

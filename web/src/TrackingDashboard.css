@@ -1,0 +1,83 @@
+.tracking-shell { background: #f2f7f6; color: #16332f; }
+.tracking-shell .topbar { background: #0b4036; }
+.tracking-shell main { max-width: none; padding: clamp(16px, 2vw, 30px); }
+.tracking-view h1 { font-size: clamp(1.9rem, 3vw, 2.65rem); }
+.tracking-view .view-heading { margin-bottom: 12px; }
+.tracking-view .view-heading p { margin: 6px 0 0; }
+.tracking-view .breadcrumbs { margin-bottom: 10px; }
+.tracking-view .filters { padding: 12px 16px; margin-bottom: 8px; }
+.tracking-dashboard .panel { padding: 15px; border-radius: 12px; box-shadow: 0 3px 10px #1147320c; }
+.tracking-dashboard h2 { font-size: 1.02rem; margin-bottom: 10px; }
+.tracking-dashboard p { font-size: .88rem; margin: 8px 0; }
+.tracking-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-flow: row; gap: 12px; align-items: stretch; }
+.tracking-toolbar, .tracking-actions, .tracking-utilities { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 12px; }
+.tracking-toolbar { justify-content: flex-end; }
+.tracking-toolbar button, .tracking-actions button, .tracking-utilities button { width: auto; min-height: 37px; margin: 0; }
+.tracking-dashboard > form { margin-bottom: 12px; }
+.tracking-info { grid-column: span 5; }
+.tracking-stats { grid-column: span 7; }
+.tracking-timeline { grid-column: span 7; }
+.tracking-detail { grid-column: span 5; }
+.tracking-trend, .tracking-measurements, .tracking-maps { grid-column: span 4; }
+.tracking-summary, .tracking-actions { grid-column: 1 / -1; }
+.tracking-info, .tracking-detail { display: grid; grid-template-columns: minmax(105px, 1fr) minmax(0, 1.35fr); align-content: start; align-items: start; gap: 5px 12px; }
+.tracking-info h2, .tracking-detail h2, .tracking-detail .tracking-visit-options { grid-column: 1 / -1; }
+.tracking-info > img, .tracking-detail > img { display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 170px; object-fit: contain; border-radius: 9px; background: #edf4f1; }
+.tracking-info dl, .tracking-detail dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 9px; font-size: .83rem; margin: 0; }
+.tracking-dashboard dt { color: #4c6861; }
+.tracking-dashboard dd { margin: 0; font-weight: 650; overflow-wrap: anywhere; }
+.tracking-detail > button { grid-column: 2; margin: 5px 0; min-height: 36px; }
+.tracking-visit-options p { margin: 2px 0 6px; color: var(--muted); }
+.tracking-visit-options details img { width: min(100%, 240px); display: block; border-radius: 8px; margin-top: 8px; }
+.tracking-stats dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.tracking-stats dl > div { display: flex; flex-direction: column-reverse; justify-content: center; gap: 5px; padding: 12px; border-radius: 9px; background: #e8f4ef; }
+.tracking-stats dt { font-size: .75rem; }
+.tracking-stats dd { font-size: clamp(.92rem, 1.35vw, 1.22rem); }
+.tracking-timeline .panel-heading { margin-bottom: 4px; }
+.tracking-timeline ol { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; margin: 0; list-style: none; padding: 14px 4px 6px; }
+.tracking-timeline li { flex: 1 0 122px; min-width: 0; max-width: 185px; position: relative; }
+.tracking-timeline li::before { content: ''; position: absolute; top: -8px; left: 0; right: -8px; height: 1px; background: #82bdaa; }
+.tracking-timeline li:last-child::before { right: 0; }
+.tracking-timeline li > button { display: grid; gap: 3px; border: 1px solid transparent; text-align: center; align-content: start; padding: 7px; margin: 0; width: 100%; height: calc(100% - 25px); }
+.tracking-timeline li > button[aria-pressed="true"] { border-color: #16845f; background: #d7eee4; }
+.tracking-timeline img { width: 100%; height: 105px; object-fit: contain; border-radius: 6px; background: #edf4f1; }
+.tracking-timeline li > button span, .tracking-timeline .check { font-size: .75rem; }
+.tracking-timeline li small { font-size: .69rem; }
+.tracking-timeline .check { margin-top: 4px; white-space: nowrap; }
+.tracking-trend label { display: flex; align-items: center; gap: 6px; font-size: .78rem; }
+.tracking-trend select { min-height: 30px; padding: 4px 6px; }
+.tracking-trend svg { display: block; width: 100%; max-height: 215px; }
+.tracking-trend svg text { font-size: 10px; fill: #48615b; }
+.tracking-trend circle { cursor: pointer; }
+.tracking-trend circle:focus { stroke: #073c30; }
+.tracking-measurements th, .tracking-measurements td { font-size: .78rem; padding: 7px; text-align: left; }
+.tracking-measurements table tr > :not(:first-child) { white-space: nowrap; }
+.tracking-measurements thead, .tracking-marked { background: #e7f4ee; }
+.tracking-maps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tracking-map-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.tracking-map-pair figure { margin: 0; }
+.tracking-maps img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 7px; background: #edf4f1; }
+.tracking-map-overlay { position: relative; }
+.tracking-map-overlay img:first-child { aspect-ratio: auto; }
+.tracking-map-overlay img + img { position: absolute; inset: 0; height: 100%; object-fit: fill; opacity: .5; }
+.tracking-map-pair figcaption, .tracking-maps .check { font-size: .72rem; margin-top: 4px; }
+.tracking-summary.panel { background: #ebf7f1; border-color: #cce6db; }
+@media (max-width: 1350px) {
+  .tracking-trend, .tracking-measurements { grid-column: span 6; }
+  .tracking-maps { grid-column: 1 / -1; }
+  .tracking-map-pair, .tracking-map-overlay, .tracking-maps > div > img { max-width: 360px; }
+}
+@media (max-width: 1050px) {
+  .tracking-info, .tracking-stats { grid-column: span 6; }
+  .tracking-stats dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tracking-timeline, .tracking-detail { grid-column: 1 / -1; }
+}
+@media (max-width: 650px) {
+  .tracking-grid { grid-template-columns: minmax(0, 1fr); }
+  .tracking-grid > * { grid-column: 1; }
+  .tracking-toolbar { justify-content: flex-start; }
+  .tracking-info dl, .tracking-detail dl { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+  .tracking-info dd, .tracking-detail dd { margin-bottom: 4px; }
+  .tracking-view .view-heading { flex-wrap: wrap; }
+  .tracking-maps { grid-template-columns: minmax(0, 1fr); }
+}

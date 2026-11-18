@@ -3,6 +3,7 @@
 import csv
 import hashlib
 import json
+import re
 import sqlite3
 import uuid
 import shutil
@@ -131,6 +132,20 @@ class LongitudinalStore(LifecycleMixin):
             )
         return code, name, notes
 
+    @staticmethod
+    def _next_code(conn, person_id=None):
+        if person_id is None:
+            prefix, rows = "P", conn.execute("SELECT code FROM persons")
+        else:
+            prefix, rows = "LES", conn.execute("SELECT name FROM lesions WHERE person_id=?", (person_id,))
+        pattern = re.compile(rf"{prefix}-([0-9]+)", re.IGNORECASE)
+        numbers = (int(match[1]) for row in rows if (match := pattern.fullmatch(row[0].strip())))
+        return f"{prefix}-{max(numbers, default=0) + 1:03d}"
+
+    def next_code(self, person_id=None):
+        with self.connect() as conn:
+            return self._next_code(conn, person_id)
+
     def update_visit_notes(self, identifier, notes):
         allowed = {"itch", "bleeding", "pain", "evolution", "sun", "observation", "tags", "author"}
         if set(notes) - allowed or any(not isinstance(v, str) or len(v) > 2000 for v in notes.values()):
@@ -150,10 +165,13 @@ class LongitudinalStore(LifecycleMixin):
             db.execute("UPDATE records SET metadata=? WHERE id=?", (dumps(metadata), identifier))
 
     def create_person(self, code, name="", notes=""):
-        code, name, notes = self.validate_person(code, name, notes)
         identifier, timestamp = uuid.uuid4().hex, now()
         try:
             with self.connect() as db:
+                if code is None:
+                    db.execute("BEGIN IMMEDIATE")
+                    code = self._next_code(db)
+                code, name, notes = self.validate_person(code, name, notes)
                 db.execute(
                     "INSERT INTO persons VALUES(?,?,?,?,?,?)",
                     (identifier, code, name, notes, timestamp, timestamp),
@@ -167,8 +185,20 @@ class LongitudinalStore(LifecycleMixin):
             return [
                 dict(row)
                 for row in db.execute(
-                    """SELECT p.*, count(l.id) AS lesion_count
+                    """WITH visit_totals AS (
+                    SELECT lesion_id, count(*) AS visits,
+                        count(json_extract(metadata, '$.classification.analyzed_at')) AS analyses,
+                        max(json_extract(metadata, '$.classification.analyzed_at')) AS last_analysis
+                    FROM records
+                    WHERE id NOT IN (SELECT identifier FROM trash WHERE kind='record')
+                    GROUP BY lesion_id
+                )
+                SELECT p.*, count(l.id) AS lesion_count,
+                    coalesce(sum(v.analyses), 0) AS analysis_count,
+                    sum(CASE WHEN v.visits >= 2 THEN 1 ELSE 0 END) AS followup_count,
+                    max(v.last_analysis) AS last_analysis
                 FROM persons p LEFT JOIN lesions l ON l.person_id=p.id
+                LEFT JOIN visit_totals v ON v.lesion_id=l.id
                 GROUP BY p.id ORDER BY p.code"""
                 )
             ]
@@ -212,22 +242,35 @@ class LongitudinalStore(LifecycleMixin):
         person_id = person["id"] if person else self.create_person(patient)
         return self.create_lesion_for_person(person_id, name, site)
 
-    def create_lesion_for_person(self, person_id, name, site=""):
-        name, site = name.strip(), site.strip()
-        if not name or max(len(name), len(site)) > 160:
+    def create_lesion_for_person(self, person_id, name, site="", details=None, location=None):
+        site = site.strip()
+        name = name.strip() if name is not None else None
+        if name == "" or max(len(name or ""), len(site)) > 160:
             raise ValueError("Indique nombre de lesión y zona de hasta 160 caracteres.")
         identifier = uuid.uuid4().hex
         try:
             with self.connect() as db:
+                if name is None or details is not None:
+                    db.execute("BEGIN IMMEDIATE")
+                if name is None:
+                    name = self._next_code(db, person_id)
                 person = db.execute(
                     "SELECT code FROM persons WHERE id=?", (person_id,)
                 ).fetchone()
                 if person is None:
                     raise ValueError("Seleccione una persona existente.")
+                if details is not None and db.execute(
+                    "SELECT 1 FROM lesions WHERE person_id=? AND name=? COLLATE NOCASE", (person_id, name)
+                ).fetchone():
+                    raise ValueError("Esa lesión ya existe para esta persona.")
                 db.execute(
                     "INSERT INTO lesions(id,patient,name,site,created,person_id) VALUES(?,?,?,?,?,?)",
                     (identifier, person["code"], name, site, now(), person_id),
                 )
+                if details is not None:
+                    db.execute("INSERT INTO workspace_lesions VALUES(?,?,?,?,?)", (identifier, *details))
+                if location is not None:
+                    db.execute("INSERT INTO workspace_lesion_locations VALUES(?,?,?,?,?)", (identifier, *location))
         except sqlite3.IntegrityError as exc:
             raise ValueError("Esa lesión ya existe para esta persona.") from exc
         return identifier
@@ -279,6 +322,28 @@ class LongitudinalStore(LifecycleMixin):
         if not target.is_relative_to(self.root):
             raise ValueError("Ruta fuera del archivo de seguimiento.")
         return target
+
+    def confirm_record_identity(self, identifier):
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            rows = db.execute(
+                """SELECT id, metadata FROM records
+                   WHERE lesion_id=(SELECT lesion_id FROM records WHERE id=?)
+                   AND id NOT IN (SELECT identifier FROM trash WHERE kind='record')
+                   ORDER BY captured_at, id""",
+                (identifier,),
+            ).fetchall()
+            record = next((row for row in rows if row["id"] == identifier), None)
+            if record is None:
+                raise ValueError("Visita no encontrada.")
+            reference = rows[0]["id"]
+            metadata = json.loads(record["metadata"])
+            metadata["lesion_identity"] = (
+                dict(status="initial_reference", reference_id=None, method="initial_registration")
+                if reference == identifier else
+                dict(status="user_declared", reference_id=reference, method="human_confirmation")
+            )
+            db.execute("UPDATE records SET metadata=? WHERE id=?", (dumps(metadata), identifier))
 
     def add_record(
         self,
@@ -427,12 +492,17 @@ class LongitudinalStore(LifecycleMixin):
                     ),
                 )
             with self.connect() as db:
+                db.execute("BEGIN IMMEDIATE")
                 row = db.execute(
                     "SELECT metadata FROM records WHERE id=?", (identifier,)
                 ).fetchone()
                 if row is None:
                     raise ValueError("Registro inexistente.")
                 metadata = json.loads(row["metadata"])
+                previous = metadata.get("classification")
+                snapshot_keys = ("experiment", "model_sha256", "image_sha256", "mask_sha256", "label", "score")
+                if previous and any(previous.get(key) != analysis.get(key) for key in snapshot_keys):
+                    metadata.setdefault("classification_history", []).append(previous)
                 metadata["classification"] = analysis
                 db.execute(
                     "UPDATE records SET metadata=? WHERE id=?",

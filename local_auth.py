@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import tempfile
 from pathlib import Path
 
 SCHEMA = "dermavision-local-admin-v1"
@@ -15,6 +16,31 @@ class LocalAdmin:
 
     def exists(self):
         return self.path.exists()
+
+    def username(self):
+        data = json.loads(self.path.read_text(encoding="utf-8"))
+        if data.get("schema") != SCHEMA or not isinstance(data.get("username"), str):
+            raise ValueError("Formato de cuenta no reconocido.")
+        return data["username"]
+
+    def change_password(self, current, replacement):
+        username = self.username()
+        if not self.verify(username, current):
+            return False
+        if not 10 <= len(replacement) <= 256 or replacement == current:
+            raise ValueError("Elige una contraseña distinta de entre 10 y 256 caracteres.")
+        salt = os.urandom(16)
+        data = dict(schema=SCHEMA, username=username,
+                    salt=base64.b64encode(salt).decode("ascii"),
+                    digest=base64.b64encode(self._digest(replacement, salt)).decode("ascii"))
+        with tempfile.TemporaryDirectory(dir=self.path.parent) as temp:
+            path = Path(temp) / self.path.name
+            with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as handle:
+                json.dump(data, handle, ensure_ascii=False)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(path, self.path)
+        return True
 
     @staticmethod
     def _digest(password, salt):

@@ -1,0 +1,47 @@
+.anatomy-panel { background: #eef7f7; border: 1px solid #d4e9e7; border-radius: 14px; padding: clamp(12px, 2vw, 20px); min-width: 0; }
+.anatomy-panel h2 { margin: 0 0 5px; }
+.anatomy-panel > p { color: #486764; font-size: .87rem; margin: 5px 0 8px; }
+.anatomy-figures { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 5px; max-width: 430px; margin-inline: auto; }
+.anatomy-figure { margin: 0; padding: 5px; text-align: center; border: 1px solid transparent; border-radius: 10px; min-width: 0; }
+.anatomy-figure figcaption { font-size: .76rem; font-weight: 700; color: #376560; }
+.anatomy-svg { display: block; margin: auto; width: 100%; max-width: 205px; height: auto; max-height: 376px; overflow: visible; }
+.anatomy-readonly { grid-template-columns: minmax(0, 1fr); }
+.anatomy-readonly .anatomy-figure { max-width: 210px; width: 100%; justify-self: center; }
+.anatomy-region { fill: #e2f1f1; stroke: #598c90; stroke-width: .65; stroke-linejoin: round; paint-order: fill stroke; }
+.anatomy-outline { fill: #f4fafb; stroke: #327f8b; stroke-width: 1.75; stroke-linejoin: round; }
+.anatomy-details { fill: none; stroke: #8cbac1; stroke-width: 1.3; stroke-linecap: round; opacity: .65; }
+.anatomy-svg.is-editable .anatomy-region { fill: transparent; stroke: none; cursor: pointer; pointer-events: fill; transition: fill 120ms ease; }
+.anatomy-svg.is-editable .anatomy-region:hover, .anatomy-svg.is-editable .anatomy-region:focus-visible { fill: #87cad140; }
+.anatomy-svg.is-editable .anatomy-region.is-selected { fill: #54bab65e; }
+.anatomy-region.is-selected, .anatomy-svg.is-editable .anatomy-region:hover, .anatomy-region:focus-visible {
+  stroke: #087863; stroke-width: 1.15; outline: none;
+}
+.anatomy-svg:not(.is-editable) .anatomy-region.is-selected { fill: #a9ded7; }
+.anatomy-marker { pointer-events: none; }
+.anatomy-marker circle:first-child { fill: #eafcf7; stroke: #08765f; stroke-width: 2.4; }
+.anatomy-marker circle:last-child { fill: #08765f; }
+.anatomy-marker[data-origin=default] circle:first-child { stroke-dasharray: 3 1.7; }
+.anatomy-view-buttons { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; max-width: 375px; margin: 7px auto 0; }
+.anatomy-view-buttons button { border: 1px solid #76aeb0; }
+.anatomy-view-buttons button[aria-pressed=true] { background: #07806b; color: white; }
+.anatomy-panel .anatomy-hover { min-height: 2.1em; margin: 7px 0; color: #13665a; font-weight: 700; }
+.anatomy-selection { background: #d6f2ee; border-radius: 9px; padding: 10px; font-size: .86rem; }
+.anatomy-selection p { margin: 6px 0; }
+.anatomy-selection dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 9px; margin: 8px 0; }
+.anatomy-selection dt { color: #2c5954; }
+.anatomy-selection dd { margin: 0; overflow-wrap: anywhere; }
+.anatomy-selection button { justify-self: start; }
+.lesion-editor { display: grid; gap: 14px; }
+.lesion-editor-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); align-items: start; gap: 14px; }
+.lesion-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 7px; }
+.lesion-form :is(input, select, textarea) {
+  width: 100%; min-width: 0; min-height: 39px; padding: 8px 10px; border: 1px solid #bdd8d1;
+  border-radius: 8px; background: #fcfefd; font: inherit; font-weight: 400; color: #153833;
+}
+.lesion-form input[readonly] { background: #eef7f4; }
+.lesion-form :is(input, select, textarea):focus-visible { outline: 2px solid #158f77; outline-offset: 1px; }
+.lesion-form .form-actions { justify-content: end; margin-top: 14px; }
+.lesion-form textarea { min-height: 76px; resize: vertical; }
+.lesion-form .character-count { justify-self: end; font-weight: 400; font-size: .74rem; color: #506c66; }
+@media (max-width: 880px) { .lesion-editor-grid { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 410px) { .lesion-code-row { grid-template-columns: minmax(0,1fr); } }

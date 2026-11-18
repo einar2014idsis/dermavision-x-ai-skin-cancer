@@ -43,13 +43,17 @@
 .app-shell { min-height: 100dvh; display: grid; grid-template-columns: 226px minmax(0, 1fr); grid-template-rows: auto 1fr; }
 .app-shell .topbar { grid-column: 1 / -1; }
 .app-shell .topbar-inner { max-width: none; padding-inline: 22px; }
-.app-shell main { grid-column: 2; grid-row: 2; width: 100%; min-width: 0; }
+.app-shell main { grid-column: 2; grid-row: 2; width: 100%; min-width: 0; margin: 0; align-self: start; }
 .app-shell .navigation { grid-column: 1; grid-row: 2; border: 0; border-right: 1px solid var(--line); }
 .app-shell .navigation > div { flex-direction: column; padding: 21px 12px; }
 .app-shell .navigation a { display: flex; align-items: center; gap: 10px; }
 .mobile-menu { display: none; }
 .breadcrumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 15px; color: var(--muted); font-size: .86rem; }
 .breadcrumbs a { color: var(--accent); }
+.module-empty { display: grid; justify-items: center; align-content: center; gap: 8px; min-height: 230px; padding: 28px; text-align: center; color: #155b4b; background: linear-gradient(145deg, #fff, #eaf7f3); }
+.module-empty h2 { margin: 4px 0 0; justify-content: center; }
+.module-empty p { margin: 0; max-width: 60ch; }
+.module-empty a { color: #075e4b; font-weight: 700; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .panel-heading h2 { margin: 0; }
 .panel-heading button { width: auto; margin: 0; min-height: 38px; padding: 7px 12px; }
@@ -72,3 +76,57 @@ summary { cursor: pointer; font-weight: 650; color: #18564b; }
 }
 @media (max-width: 380px) { .timeline figure { grid-template-columns: 1fr; } .timeline img { height: 135px; } }
 @media (max-width: 720px) { .followup-grid { grid-template-columns: 1fr; } .view-heading, .filters { flex-wrap: wrap; } .filters > label { flex-basis: 100%; } .actions { flex-wrap: wrap; } }
+.evolution { grid-column: 1 / -1; }
+.evolution .panel-heading p { margin: .35rem 0 0; }
+.evolution svg { display: block; width: 100%; height: auto; max-height: 19rem; margin: 1rem 0; background: #f4f9f7; border-radius: 14px; }
+.evolution-reference { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; padding: .65rem .9rem; background: #e7f3ee; border-radius: 10px; }
+.evolution-visits { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); padding: 0; gap: .9rem; }
+.evolution-visits li { padding: 12px; background: #f6faf8; border: 1px solid #d5e2df; border-radius: 12px; }
+.evolution-visits img { width: 100%; height: 100px; object-fit: contain; background: #e7f0ec; border-radius: 8px; margin-bottom: .7rem; }
+.evolution-visits p { margin: .3rem 0; }
+.evolution-visits button { margin-top: .7rem; }
+.evolution-metrics { display: grid; gap: .35rem; margin: .85rem 0 0; }
+.evolution-metrics div { display: flex; justify-content: space-between; gap: .7rem; }
+.evolution-metrics dd { margin: 0; font-weight: 700; white-space: nowrap; }
+.comparison-measurements { margin-top: 1rem; }
+.evolution-table { overflow-x: auto; }
+.evolution-table table { width: 100%; border-collapse: collapse; text-align: left; }
+.evolution-table th, .evolution-table td { border-bottom: 1px solid #d5e2df; padding: .65rem; vertical-align: top; }
+.evolution-table small { display: block; margin: .25rem 0; }
+.evolution-table button { margin-top: .5rem; }
+.comparison-map { margin: 1rem 0; }
+.comparison-map .visit-preview { max-height: 24rem; }
+/* Readable navigation and controls across the local application. */
+html { font-size: 18px; }
+.app-shell .brand { font-size: 1.5rem; }
+.app-shell .brand-mark { width: 44px; height: 44px; }
+.app-shell .topbar-inner { min-height: 80px; }
+.app-shell .navigation > div { gap: 10px; padding: 24px 12px; }
+.app-shell .navigation a { min-height: 48px; padding: 13px 12px; font-size: .95rem; }
+.app-shell .navigation svg { width: 23px; height: 23px; flex-shrink: 0; }
+.app-shell .local { font-size: .9rem; }
+.app-shell :is(.pair-table,.people-table,.workspace-table) :is(th,td) { font-size: .85rem; padding: 10px; }
+.app-shell :is(.tracking-dashboard,.comparison-dashboard,.reports-grid) p { font-size: .88rem; }
+.app-shell :is(.tracking-timeline li small,.report-history button small) { font-size: .75rem; }
+.app-shell.workspace-login main { padding-top: 26px; }
+@media (max-width: 600px) { html { font-size: 16px; } }
+/* Visit capture is also mounted outside the followup-view container. */
+.visit-capture-form .record-form { padding: clamp(20px,2vw,32px); }
+.visit-capture-form .record-form fieldset { display: grid; gap: 22px; min-width: 0; }
+.visit-capture-form .record-form h2 { font-size: 1.2rem; margin: 0 0 4px; }
+.visit-capture-form label { display: grid; gap: 10px; font-size: .95rem; font-weight: 650; }
+.visit-capture-form input:not([type=checkbox]), .visit-capture-form select, .visit-capture-form textarea {
+  box-sizing: border-box; width: 100%; min-height: 50px; padding: 12px 14px; border: 1px solid #b5d1c7; border-radius: 10px; background: #fff; color: #193d34; font: inherit;
+}
+.visit-capture-form textarea { min-height: 110px; resize: vertical; }
+.visit-capture-form :is(input,select,textarea):focus-visible { outline: 3px solid #a1dbc8; outline-offset: 2px; }
+.visit-capture-form .visit-upload { padding: 20px; border: 1.5px dashed #91baab; border-radius: 12px; background: #f0f8f4; }
+.visit-upload-hint { font-weight: 400; color: #526c62; font-size: .85rem; }
+.visit-capture-form input[type=file] { border: 0; padding: 0; background: transparent; min-height: 46px; font-size: .85rem; font-weight: 400; }
+.visit-capture-form input[type=file]::file-selector-button { padding: 12px 16px; margin-right: 12px; border: 1px solid #88b7a6; border-radius: 8px; background: #fff; color: #075e49; font: inherit; font-weight: 700; cursor: pointer; }
+.visit-capture-form label.check { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px solid #dce9e3; border-radius: 10px; background: #f8fbf9; line-height: 1.5; font-size: .9rem; }
+.visit-capture-form input[type=checkbox] { width: 22px; height: 22px; flex: 0 0 22px; margin: 2px 0 0; accent-color: #087352; }
+.visit-capture-form .record-form button { min-height: 46px; padding: 12px 18px; font-size: .9rem; border-radius: 9px; }
+.visit-capture-form .record-form > button { width: 100%; margin-top: 24px; min-height: 50px; }
+.visit-capture-form .visit-preview { width: 100%; max-height: 420px; background: #f0f5f2; border-radius: 12px; object-fit: contain; }
+.visit-capture-form .drawing { max-width: 100%; }

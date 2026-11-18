@@ -20,6 +20,31 @@ class MeanModel:
 
 
 class ExplainabilityTests(unittest.TestCase):
+    def test_occlusion_magnitude_keeps_overlapping_opposite_effects(self):
+        class OppositeModel:
+            def __call__(self, batch, training=False):
+                left = batch[:, 100:124, 83:106].mean(axis=(1, 2, 3))
+                right = batch[:, 100:124, 118:141].mean(axis=(1, 2, 3))
+                return FakeOutput((0.5 + (left - right) / 510)[:, None])
+
+        pixels = np.full((224, 224, 3), 40, dtype=np.uint8)
+        pixels[100:124, 83:106] = 215
+        pixels[100:124, 118:141] = 215
+        image = Image.fromarray(pixels)
+        legacy, signed_intensity = occlusion_explanation(OppositeModel(), image, "malignant")
+        mapped, magnitude = occlusion_explanation(
+            OppositeModel(), image, "malignant", display="magnitude-turbo"
+        )
+        stats = mapped.info["explanation_stats"]
+        self.assertAlmostEqual(stats["target_baseline"], 0.5)
+        self.assertLess(stats["window_effects"]["min"], 0)
+        self.assertGreater(stats["window_effects"]["max"], 0)
+        self.assertEqual(stats["evaluations"], 392)
+        self.assertFalse(np.array_equal(mapped.info["signed_map"], mapped))
+        scale = max(stats["maximum_effect"], 0.002)
+        legacy_scale = max(legacy.info["explanation_stats"]["maximum_effect"], 0.002)
+        self.assertGreater(magnitude[112, 111] * scale, signed_intensity[112, 111] * legacy_scale + 0.01)
+
     def test_full_map_opacity_and_optional_contour_do_not_clip_exterior(self):
         from explainability import influence_view
         original = Image.new("RGB", (224, 224), (80, 80, 80))
@@ -104,6 +129,13 @@ class ExplainabilityTests(unittest.TestCase):
         self.assertGreater(
             float(heat[:40, :40].mean()), float(heat[95:129, 95:129].mean()) + 0.4
         )
+        original = Image.fromarray(pixels).resize((512, 256))
+        colored, turbo_heat = occlusion_explanation(
+            CornerModel(), original, "malignant", display="magnitude-turbo"
+        )
+        self.assertEqual(colored.size, original.size)
+        self.assertGreater(turbo_heat[:40, :40].mean(), turbo_heat[95:129, 95:129].mean() + 0.4)
+        self.assertNotEqual(colored.getpixel((35, 20)), colored.getpixel((256, 128)))
 
     def test_opposing_feature_is_visible_and_caption_explains_it(self):
         from explainability import explanation_diagnostics, explanation_caption

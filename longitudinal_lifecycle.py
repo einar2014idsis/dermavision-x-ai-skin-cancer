@@ -170,7 +170,7 @@ class LifecycleMixin:
             with self.connect() as source, closing(sqlite3.connect(snapshot)) as target:
                 source.backup(target)
             files = {"history.sqlite3": snapshot}
-            for folder in ("records", "comparisons"):
+            for folder in ("records", "comparisons", "documents"):
                 for path in (self.root / folder).rglob("*"):
                     if path.is_file():
                         if path.is_symlink():
@@ -291,6 +291,10 @@ class LifecycleMixin:
                         != explanation["sha256"]
                     ):
                         raise ValueError("Falta una explicación visual verificada.")
+                if db.execute("SELECT 1 FROM sqlite_master WHERE name='workspace_documents'").fetchone():
+                    for path, digest in db.execute("SELECT path,sha256 FROM workspace_documents"):
+                        if manifest["files"].get(path) != digest:
+                            raise ValueError("Falta un documento asociado verificado.")
             # Recovery ZIP is retained beside the data, never overwriting the source.
             recovery = self.root.parent / (
                 "respaldo-antes-restauracion-" + uuid.uuid4().hex + ".zip"
@@ -301,7 +305,7 @@ class LifecycleMixin:
             moved = []
             installed = []
             try:
-                for name in ("history.sqlite3", "records", "comparisons"):
+                for name in ("history.sqlite3", "records", "comparisons", "documents"):
                     target = self.root / name
                     if target.exists():
                         target.replace(old / name)

@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image, ImageOps
 
 from capture_guide import CaptureGuide
+from classifier_input import classifier_pixels
 
 VERSION = "longitudinal-v1"
 INDEX_SCALES = dict(
@@ -156,6 +157,16 @@ def shape_mask(mask):
     )
 
 
+def lbp_codes(rgb):
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    codes = np.zeros(gray.shape, "uint8")
+    for bit, (dy, dx) in enumerate(
+        [(-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1)]
+    ):
+        codes |= (np.roll(np.roll(gray, dy, 0), dx, 1) >= gray).astype("uint8") << bit
+    return codes
+
+
 def features(rgb, mask):
     mask = mask.astype(bool)
     area = int(mask.sum())
@@ -184,16 +195,10 @@ def features(rgb, mask):
             / max(4 * turned.sum(), 1)
         )
     lab = cv2.cvtColor(rgb.astype("float32") / 255, cv2.COLOR_RGB2LAB)
-    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
     interior = cv2.erode(mask.astype("uint8"), np.ones((3, 3), "uint8")).astype(bool)
     interior[[0, -1], :] = False
     interior[:, [0, -1]] = False
-    lbp = np.zeros(gray.shape, "uint8")
-    for bit, (dy, dx) in enumerate(
-        [(-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1)]
-    ):
-        lbp |= (np.roll(np.roll(gray, dy, 0), dx, 1) >= gray).astype("uint8") << bit
-    hist = np.histogram(lbp[interior], bins=16, range=(0, 256))[0].astype(float)
+    hist = np.histogram(lbp_codes(rgb)[interior], bins=16, range=(0, 256))[0].astype(float)
     hist /= max(hist.sum(), 1)
     return dict(
         area_px=area,
@@ -203,6 +208,35 @@ def features(rgb, mask):
         color_lab_std=lab[mask].std(axis=0).astype(float).tolist(),
         texture_lbp_hist=hist.tolist(),
     )
+
+
+def local_texture_map(previous, current, common, offset):
+    """Visualize local distances between 16-bin LBP histograms on shared support."""
+    if np.max(np.abs(offset)) >= 1e-6:
+        lab = cv2.cvtColor(current.astype("float32") / 255, cv2.COLOR_RGB2LAB)
+        lab += offset
+        lab[:, :, 0] = np.clip(lab[:, :, 0], 0, 100)
+        current = np.uint8(np.clip(np.rint(cv2.cvtColor(lab, cv2.COLOR_LAB2RGB) * 255), 0, 255))
+    interior = cv2.erode(common.astype("uint8"), np.ones((3, 3), "uint8"),
+                         borderType=cv2.BORDER_CONSTANT, borderValue=0).astype(bool)
+    before, after = lbp_codes(previous) // 16, lbp_codes(current) // 16
+
+    def counts(region):
+        return cv2.boxFilter(region.astype("float32"), -1, (15, 15), normalize=False,
+                             borderType=cv2.BORDER_CONSTANT)
+
+    samples = counts(interior)
+    support = interior & (samples >= 25)
+    if not support.any():
+        raise ValueError("No hay suficiente región común para mostrar textura local.")
+    distance = np.zeros(samples.shape, dtype="float32")
+    for code in range(16):
+        distance += np.abs(counts(interior & (before == code)) - counts(interior & (after == code)))
+    intensity = np.uint8(np.clip(distance / (2 * np.maximum(samples, 1)), 0, 1) * 255)
+    heat = cv2.cvtColor(cv2.applyColorMap(intensity, cv2.COLORMAP_TURBO), cv2.COLOR_BGR2RGB)
+    overlay = previous.copy()
+    overlay[support] = np.rint(.35 * previous[support] + .65 * heat[support]).astype("uint8")
+    return overlay
 
 
 def classify(image, model=None, gate=None, calibration=None):
@@ -226,9 +260,7 @@ def classify(image, model=None, gate=None, calibration=None):
             message=decision.message,
             quality=quality,
         )
-    data = np.asarray(
-        image.resize((224, 224), Image.Resampling.BILINEAR), dtype="float32"
-    )[None]
+    data = classifier_pixels(image)[None]
     raw_score = float(model(data, training=False).numpy()[0, 0])
     if not np.isfinite(raw_score) or not 0 <= raw_score <= 1:
         raise ValueError("Salida del clasificador inválida.")
@@ -320,6 +352,7 @@ def classify_record(
     calibration=None,
     model_path=None,
     explain=True,
+    persist=True,
 ):
     """Analiza una visita y reutiliza el resultado guardado si no hay modelo."""
     record = store.record(identifier)
@@ -331,10 +364,27 @@ def classify_record(
             and cached.get("mask_sha256") == record["mask_sha256"]
         ):
             return cached
-    classification = classify(image, model, gate, calibration)
-    # Conserva el análisis anterior si el modelo no está disponible.
+    classification, overlay = prepare_record_analysis(image, mask, model, gate, calibration, model_path, explain=explain)
     if classification["state"] == "unavailable":
         return classification
+    if (
+        not explain
+        and cached
+        and cached.get("explanation")
+        and all(cached.get(key) == classification.get(key)
+                for key in ("state", "label", "raw_score", "model_sha256", "calibration"))
+    ):
+        classification["explanation"] = cached["explanation"]
+        if cached.get("explanation_diagnostics"):
+            classification["explanation_diagnostics"] = cached["explanation_diagnostics"]
+    return store.save_record_analysis(identifier, classification, overlay) if persist else classification
+
+
+def prepare_record_analysis(image, mask, model, gate, calibration, model_path, *, explain=True):
+    """Compute an experimental snapshot before the visit is registered."""
+    classification = classify(image, model, gate, calibration)
+    if classification["state"] == "unavailable":
+        return classification, None
     classification["model_sha256"] = (
         hashlib.sha256(Path(model_path).read_bytes()).hexdigest()
         if model_path is not None and Path(model_path).is_file()
@@ -349,34 +399,16 @@ def classify_record(
             uncertain_high=calibration.uncertain_high,
             source=calibration.source,
         )
-    if (
-        not explain
-        and cached
-        and cached.get("explanation")
-        and all(
-            cached.get(key) == classification.get(key)
-            for key in ("state", "label", "raw_score", "model_sha256", "calibration")
-        )
-    ):
-        classification["explanation"] = cached["explanation"]
-        if cached.get("explanation_diagnostics"):
-            classification["explanation_diagnostics"] = cached[
-                "explanation_diagnostics"
-            ]
     overlay = None
     if explain and classification["state"] == "accepted":
         try:
             from explainability import occlusion_explanation, explanation_diagnostics
 
-            overlay, heat = occlusion_explanation(
-                model, image, classification["label"], display="magnitude-green-yellow"
-            )
-            classification["explanation_diagnostics"] = explanation_diagnostics(
-                overlay, heat, mask
-            )
+            overlay, heat = occlusion_explanation(model, image, classification["label"], display="magnitude-green-yellow")
+            classification["explanation_diagnostics"] = explanation_diagnostics(overlay, heat, mask)
         except Exception as exc:
             classification["explanation_error"] = str(exc)
-    return store.save_record_analysis(identifier, classification, overlay)
+    return classification, overlay
 
 
 def visual_descriptors(previous, current, m0, m1, feature_pair=None):
@@ -692,15 +724,16 @@ def compare_records(
     mode="longitudinal",
     fallback_visual=False,
     requested_mode=None,
+    persist=True,
 ):
     previous, current = store.pair(previous_id, current_id, mode)
     photo0, mask0 = store.load_images(previous)
     photo1, mask1 = store.load_images(current)
     classification0 = classify_record(
-        store, previous_id, model, gate, calibration, model_path, explain=False
+        store, previous_id, model, gate, calibration, model_path, explain=False, persist=persist
     )
     classification1 = classify_record(
-        store, current_id, model, gate, calibration, model_path
+        store, current_id, model, gate, calibration, model_path, persist=persist
     )
     digest = classification1.get("model_sha256")
     reviewed = previous["metadata"].get("mask_reviewed") and current["metadata"].get(
@@ -745,6 +778,7 @@ def compare_records(
             )
             registration = result.get("registration", {})
             color_controls = result.get("color_normalization", {})
+            capture_quality = result.get("capture_quality", [])
             result, aligned, overlay = compare_visual_images(
                 photo0, photo1, mask0, mask1, reviewed
             )
@@ -755,7 +789,8 @@ def compare_records(
                 requested_mode="longitudinal",
                 fallback_reason=reason,
             )
-            result.update(registration=registration, color_normalization=color_controls)
+            result.update(registration=registration, color_normalization=color_controls,
+                          capture_quality=capture_quality)
             result["warnings"].insert(
                 0,
                 "La comparación temporal no superó todos los controles. Se muestran diferencias visuales: "
@@ -786,7 +821,7 @@ def compare_records(
             for relative in ("domain-01/gate.json", "domain-02/config.json")
             if (run_root / relative).is_file()
         }
-    identifier = store.save_comparison(previous_id, current_id, result, overlay)
+    identifier = store.save_comparison(previous_id, current_id, result, overlay) if persist else None
     return dict(
         id=identifier,
         result=result,
